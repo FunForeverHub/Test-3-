@@ -55,6 +55,10 @@ document.getElementById('resetBtn').addEventListener('click', () => { ['category
 document.getElementById('completedSearch').addEventListener('input', renderTables);
 document.getElementById('activeSearch').addEventListener('input', renderTables);
 document.getElementById('fileUpload').addEventListener('change', handleFileUpload);
+const dropZone = document.getElementById('dropZone');
+['dragenter','dragover'].forEach(ev => dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.classList.add('drag'); }));
+['dragleave','drop'].forEach(ev => dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.classList.remove('drag'); }));
+dropZone.addEventListener('drop', e => { const file = e.dataTransfer.files?.[0]; if(file) readUploadedFile(file); });
 document.getElementById('restoreDataBtn').addEventListener('click', () => {
   localStorage.removeItem('smartsheetDashboardData');
   raw = window.DASHBOARD_DATA;
@@ -73,10 +77,10 @@ function passCommon(d,f){
 }
 function filteredData(){
   const f = filters();
-  return {
-    tickets: raw.tickets.filter(d => passCommon(d,f)),
-    solutions: distinctSolutions(raw.initiatives.filter(d => passCommon(d,f)))
-  };
+  const tickets = raw.tickets.filter(d => passCommon(d,f));
+  const solutionIds = new Set(tickets.map(d => d.solutionId));
+  const solutions = distinctSolutions(raw.initiatives.filter(d => solutionIds.has(d.solutionId) && passCommon(d,f)));
+  return { tickets, solutions };
 }
 function countCategory(tickets, names){ return distinctTickets(tickets.filter(d => names.includes(clean(d.gtoCategory)))); }
 function groupCountUnique(arr, key, idFn){ const seen={}; arr.forEach(d=>{const k=clean(d[key]); if(k==='Blank') return; const id=idFn(d); seen[k] ||= new Set(); seen[k].add(id);}); return Object.fromEntries(Object.keys(seen).map(k => [k, seen[k].size])); }
@@ -135,7 +139,9 @@ function formatDate(v){ if(!v || clean(v)==='Blank') return ''; const d = new Da
 
 function handleFileUpload(event){
   const file = event.target.files[0];
-  if(!file) return;
+  if(file) readUploadedFile(file);
+}
+function readUploadedFile(file){
   const reader = new FileReader();
   reader.onload = e => {
     try {

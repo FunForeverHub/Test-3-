@@ -12,14 +12,15 @@
   <main class="dashboard">
     <section class="hero">
       <div>
+        <p class="eyebrow">Executive Portfolio Dashboard</p>
         <h1>Enterprise Solutions Portfolio Dashboard</h1>
-        <p>Executive visibility into business solutions, delivery progress, financial impact, and enterprise adoption.</p>
+        <p>Visibility into business solutions, ticket volume, delivery progress, savings, and enterprise impact.</p>
         <p class="source" id="sourceInfo">Loaded packaged data.</p>
       </div>
-      <div class="uploadBox">
+      <div class="uploadBox" id="dropZone">
         <label for="fileUpload">Upload new data file</label>
         <input id="fileUpload" type="file" accept=".xlsx,.xls,.csv" />
-        <small>Upload the latest Excel export to refresh the dashboard instantly.</small>
+        <small>Upload the latest Smartsheet Excel export. The dashboard refreshes instantly and saves the file in this browser.</small>
         <button id="restoreDataBtn" type="button">Restore packaged data</button>
       </div>
     </section>
@@ -34,12 +35,12 @@
     </section>
 
     <section class="kpis">
-      <div class="kpi"><span>Business Solutions</span><strong id="kpiParentSolutions">0</strong></div>
+      <div class="kpi accent"><span>Business Solutions</span><strong id="kpiParentSolutions">0</strong></div>
       <div class="kpi"><span>Total Tickets</span><strong id="kpiTickets">0</strong></div>
       <div class="kpi"><span>Initiatives</span><strong id="kpiInitiatives">0</strong></div>
       <div class="kpi"><span>Enhancements</span><strong id="kpiEnhancements">0</strong></div>
       <div class="kpi"><span>KTLO</span><strong id="kpiKTLO">0</strong></div>
-      <div class="kpi"><span>Annual Savings</span><strong id="kpiSavings">$0</strong></div>
+      <div class="kpi wide"><span>Annual Savings</span><strong id="kpiSavings">$0</strong></div>
       <div class="kpi"><span>Departments Impacted</span><strong id="kpiDepartments">0</strong></div>
     </section>
 

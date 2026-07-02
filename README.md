@@ -2,26 +2,37 @@
 
 Static GitHub Pages dashboard for the Smartsheet/Jira portfolio report.
 
-## Files
+## Publish on GitHub Pages
 
-- `index.html` - dashboard page
-- `styles.css` - dashboard styling
-- `app.js` - filtering, calculations, charts, and Excel upload logic
-- `data.js` - packaged starter dataset
+1. Upload these files to the root of your GitHub repository:
+   - `index.html`
+   - `styles.css`
+   - `app.js`
+   - `data.js`
+   - `README.md`
+2. Go to **Settings → Pages**.
+3. Under **Build and deployment**, select **Deploy from a branch**.
+4. Select **main** and **/ (root)**.
+5. Click **Save**.
 
-## How to use
+Your dashboard will publish at:
 
-1. Upload all files to a GitHub repository.
-2. Enable GitHub Pages for the repository.
-3. Open the dashboard URL.
-4. To refresh the dashboard with a new report, use **Upload new data file** at the top-right of the dashboard and select the latest `.xlsx` export.
+`https://YOUR-USERNAME.github.io/YOUR-REPOSITORY-NAME/`
 
-The upload happens directly in your browser. The file is not sent anywhere. The dashboard refreshes immediately and tries to save the uploaded data in browser storage so it stays available after page refreshes.
+For your current repo, it should be:
 
-## Data rules
+`https://funforeverhub.github.io/Test-3-/`
 
-- Business Solutions are counted from parent rows only.
-- Total Tickets are counted from all filtered Jira work items.
-- Annual Savings are summed from parent Business Solution rows only.
+## Updating the dashboard data
+
+Open the dashboard in the browser and use **Upload new data file** to upload the latest Smartsheet Excel export. The dashboard refreshes immediately and stores that upload in your browser using local storage.
+
+Use **Restore packaged data** to go back to the original embedded dataset.
+
+## Notes
+
+- The upload updates your local browser view. It does not overwrite the files in GitHub.
+- To make the new data the default for everyone, regenerate/replace `data.js` from the latest Excel export and commit it to GitHub.
+- KPI logic uses filtered data consistently.
+- Business Solutions and Annual Savings are calculated from parent solution rows.
 - Departments Impacted is a distinct count after filters are applied.
-- Active Portfolio excludes Done and Cancelled items.
