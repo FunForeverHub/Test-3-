@@ -1,21 +1,29 @@
-# Enterprise Solutions Portfolio Dashboard
+# Smartsheet Enterprise Solutions Portfolio Dashboard
 
-Static GitHub Pages dashboard for the Smartsheet/Jira portfolio report.
+A GitHub Pages-ready executive dashboard for the Smartsheet Enterprise Solutions Portfolio.
 
-## Publish on GitHub Pages
+## Files to upload to GitHub
 
-1. Upload these files to the root of your GitHub repository:
-   - `index.html`
-   - `styles.css`
-   - `app.js`
-   - `data.js`
-   - `README.md`
+Upload the individual files/folders to the root of your repository:
+
+- `index.html`
+- `styles.css`
+- `app.js`
+- `data.js`
+- `README.md`
+- `assets/ship-bg.svg`
+
+Do **not** upload only the ZIP file.
+
+## Publish with GitHub Pages
+
+1. Go to your repository in GitHub.
 2. Go to **Settings → Pages**.
 3. Under **Build and deployment**, select **Deploy from a branch**.
-4. Select **main** and **/ (root)**.
+4. Select branch **main** and folder **/ (root)**.
 5. Click **Save**.
 
-Your dashboard will publish at:
+Your site will publish at:
 
 `https://YOUR-USERNAME.github.io/YOUR-REPOSITORY-NAME/`
 
@@ -23,16 +31,18 @@ For your current repo, it should be:
 
 `https://funforeverhub.github.io/Test-3-/`
 
-## Updating the dashboard data
+## Refreshing the data
 
-Open the dashboard in the browser and use **Upload new data file** to upload the latest Smartsheet Excel export. The dashboard refreshes immediately and stores that upload in your browser using local storage.
+Use the **Upload new data file** section at the top of the dashboard to upload a new Smartsheet Excel export. The dashboard refreshes immediately and stores that uploaded data in your browser.
 
-Use **Restore packaged data** to go back to the original embedded dataset.
+Important: uploading through the dashboard updates your browser view only. To make the new data the default for everyone, replace/regenerate `data.js` and commit it to GitHub.
 
-## Notes
+## Dashboard logic
 
-- The upload updates your local browser view. It does not overwrite the files in GitHub.
-- To make the new data the default for everyone, regenerate/replace `data.js` from the latest Excel export and commit it to GitHub.
-- KPI logic uses filtered data consistently.
-- Business Solutions and Annual Savings are calculated from parent solution rows.
-- Departments Impacted is a distinct count after filters are applied.
+- Business Solutions = parent solution rows only.
+- Total Tickets = all filtered work items.
+- Initiative, Enhancement, and KTLO = ticket counts by GTO Work Category.
+- Annual Savings = sum of parent rows only.
+- Departments Impacted = distinct count of departments after filters.
+- Business Sponsor has been removed from both table views.
+- Active Portfolio excludes Done and Cancelled solutions.
