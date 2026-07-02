@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Enterprise Solutions Portfolio Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+  <main class="dashboard">
+    <section class="hero">
+      <div>
+        <h1>Enterprise Solutions Portfolio Dashboard</h1>
+        <p>Executive visibility into business solutions, delivery progress, financial impact, and enterprise adoption.</p>
+        <p class="source" id="sourceInfo">Loaded packaged data.</p>
+      </div>
+      <div class="uploadBox">
+        <label for="fileUpload">Upload new data file</label>
+        <input id="fileUpload" type="file" accept=".xlsx,.xls,.csv" />
+        <small>Upload the latest Excel export to refresh the dashboard instantly.</small>
+        <button id="restoreDataBtn" type="button">Restore packaged data</button>
+      </div>
+    </section>
+
+    <section class="filterBar">
+      <label>Category<select id="categoryFilter"><option value="All">All</option></select></label>
+      <label>Status<select id="statusFilter"><option value="All">All</option></select></label>
+      <label>Department<select id="departmentFilter"><option value="All">All</option></select></label>
+      <label>Priority<select id="priorityFilter"><option value="All">All</option></select></label>
+      <label>Year<select id="yearFilter"><option value="All">All</option></select></label>
+      <button id="resetBtn">Reset filters</button>
+    </section>
+
+    <section class="kpis">
+      <div class="kpi"><span>Business Solutions</span><strong id="kpiParentSolutions">0</strong></div>
+      <div class="kpi"><span>Total Tickets</span><strong id="kpiTickets">0</strong></div>
+      <div class="kpi"><span>Initiatives</span><strong id="kpiInitiatives">0</strong></div>
+      <div class="kpi"><span>Enhancements</span><strong id="kpiEnhancements">0</strong></div>
+      <div class="kpi"><span>KTLO</span><strong id="kpiKTLO">0</strong></div>
+      <div class="kpi"><span>Annual Savings</span><strong id="kpiSavings">$0</strong></div>
+      <div class="kpi"><span>Departments Impacted</span><strong id="kpiDepartments">0</strong></div>
+    </section>
+
+    <section class="grid two">
+      <div class="card"><h3>New Solutions by Status</h3><canvas id="solutionsByStatus"></canvas></div>
+      <div class="card"><h3>Annual Savings by Status</h3><canvas id="savingsByStatus"></canvas></div>
+    </section>
+
+    <section class="grid two">
+      <div class="card"><h3>Type of Savings</h3><canvas id="typeOfSavings"></canvas></div>
+      <div class="card"><h3>Work Items by Category</h3><canvas id="ticketsByCategory"></canvas></div>
+    </section>
+
+    <section class="card">
+      <div class="tableHeader"><h3>Highest Value Completed Solutions</h3><input id="completedSearch" placeholder="Search completed solutions..." /></div>
+      <div class="tableWrap"><table id="completedTable"><thead><tr><th>Business Solution</th><th>Department</th><th>Requestor</th><th>Business Sponsor</th><th>Annual Savings</th><th>Type of Savings</th><th>Users Impacted</th><th>Completion Date</th></tr></thead><tbody></tbody></table></div>
+    </section>
+
+    <section class="card">
+      <div class="tableHeader"><h3>Active Portfolio</h3><input id="activeSearch" placeholder="Search active portfolio..." /></div>
+      <div class="tableWrap"><table id="activeTable"><thead><tr><th>Business Solution</th><th>Description</th><th>Department</th><th>Requestor</th><th>Business Sponsor</th><th>Status</th><th>Annual Savings</th><th>Users Impacted</th><th>Type of Savings</th></tr></thead><tbody></tbody></table></div>
+    </section>
+  </main>
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
