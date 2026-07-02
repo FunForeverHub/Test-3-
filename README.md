@@ -1,48 +1,37 @@
 # Smartsheet Enterprise Solutions Portfolio Dashboard
 
-A GitHub Pages-ready executive dashboard for the Smartsheet Enterprise Solutions Portfolio.
+A static, GitHub Pages-ready executive dashboard for the Smartsheet Enterprise Solutions portfolio.
 
-## Files to upload to GitHub
+## How to host in GitHub Pages
 
-Upload the individual files/folders to the root of your repository:
+1. Extract this ZIP.
+2. Upload the individual files and folders to your GitHub repository:
+   - `index.html`
+   - `assets/`
+   - `README.md`
+3. In GitHub, go to **Settings → Pages**.
+4. Set **Source** to **Deploy from a branch**.
+5. Select **main** and **/(root)**.
+6. Click **Save**.
 
-- `index.html`
-- `styles.css`
-- `app.js`
-- `data.js`
-- `README.md`
-- `assets/ship-bg.svg`
+Your dashboard will publish at:
 
-Do **not** upload only the ZIP file.
-
-## Publish with GitHub Pages
-
-1. Go to your repository in GitHub.
-2. Go to **Settings → Pages**.
-3. Under **Build and deployment**, select **Deploy from a branch**.
-4. Select branch **main** and folder **/ (root)**.
-5. Click **Save**.
-
-Your site will publish at:
-
-`https://YOUR-USERNAME.github.io/YOUR-REPOSITORY-NAME/`
-
-For your current repo, it should be:
-
-`https://funforeverhub.github.io/Test-3-/`
+`https://YOUR-USERNAME.github.io/YOUR-REPOSITORY/`
 
 ## Refreshing the data
 
-Use the **Upload new data file** section at the top of the dashboard to upload a new Smartsheet Excel export. The dashboard refreshes immediately and stores that uploaded data in your browser.
+Open the live dashboard and use **Upload new data file** at the top right. Select or drag/drop a new `.xlsx` export. The dashboard refreshes immediately and stores the latest upload in your browser.
 
-Important: uploading through the dashboard updates your browser view only. To make the new data the default for everyone, replace/regenerate `data.js` and commit it to GitHub.
+## Data logic
 
-## Dashboard logic
+- **Business Solutions** = unique parent solution rows.
+- **Total Tickets** = filtered Jira work items.
+- **Initiatives / Enhancements / KTLO** = ticket volume using `GTO Work Category`.
+- **Annual Savings** = sum of `Total Savings/ Year` from parent rows only.
+- **Departments Impacted** = distinct departments from filtered parent solution rows.
+- **Completed Solutions** = parent solutions with status `Done`.
+- **Active Portfolio** = parent solutions with `Backlog`, `Queued`, `In Progress`, or `In UAT`.
 
-- Business Solutions = parent solution rows only.
-- Total Tickets = all filtered work items.
-- Initiative, Enhancement, and KTLO = ticket counts by GTO Work Category.
-- Annual Savings = sum of parent rows only.
-- Departments Impacted = distinct count of departments after filters.
-- Business Sponsor has been removed from both table views.
-- Active Portfolio excludes Done and Cancelled solutions.
+## Notes
+
+This is a fully static dashboard. It does not require a server, database, or paid hosting.

@@ -1,167 +1,126 @@
-const packagedData = window.DASHBOARD_DATA || [];
-let rawData = loadLocalData() || packagedData;
-let currentCompleted = [];
-let currentActive = [];
-let sortState = {completed:{key:'savings',dir:'desc'}, active:{key:'savings',dir:'desc'}};
-const charts = {};
-const statusOrder = ['Backlog','Queued','In Progress','In UAT','Done','Cancelled','Canceled'];
-const statusColors = {'Backlog':'#9aa4b2','Queued':'#59a9ff','In Progress':'#1e5aa8','In UAT':'#7147d8','Done':'#0f8f5f','Cancelled':'#4b5563','Canceled':'#4b5563'};
-const palette = ['#0b3d91','#7147d8','#59a9ff','#19b7a6','#9b5de5','#1e5aa8','#0f8f5f'];
+const COLORS = ['#1e5aa8','#6f42c1','#3588ff','#1db9b6','#099268','#94a3b8','#334155'];
+const STATUS_ORDER = ['Backlog','Queued','In Progress','In UAT','Done','Cancelled','Canceled'];
+const ACTIVE_STATUSES = ['Backlog','Queued','In Progress','In UAT'];
+let rawData = Array.isArray(window.INITIAL_DATA) ? window.INITIAL_DATA : [];
+let charts = {};
+let sortState = { completed: ['savings','desc'], active: ['savings','desc'] };
 
-function val(row, name){ return row[name] ?? ''; }
-function text(row, name){ const v = val(row,name); return v === null || v === undefined || String(v).trim()==='' ? '' : String(v).trim(); }
-function num(row, name){ const v = val(row,name); if(v === '' || v == null) return 0; const n = Number(String(v).replace(/[$,]/g,'')); return isNaN(n) ? 0 : n; }
-function normStatus(v){ v = String(v || '').replace(/^\d+\.\s*/, '').trim(); if(v.toLowerCase()==='canceled') return 'Cancelled'; return v || 'Unknown'; }
-function category(row){ const v = text(row,'GTO Work Category'); return v === 'BAU/KTLO' ? 'KTLO' : (v || 'Uncategorized'); }
-function isParent(row){ const b = val(row,'Business Solution'); const level = Number(val(row,'Level')); return String(b).trim()==='1' || level===0; }
-function solutionName(row){ return text(row,'Summary') || text(row,'Workspace Name') || text(row,'Description') || 'Untitled Solution'; }
-function typeSavings(row){ return text(row,'Financial Impact') || text(row,'Business Impact Category') || 'Not specified'; }
-function cleanCell(v){ return String(v || '').trim() || '—'; }
-function fmtMoney(n){ return Number(n || 0).toLocaleString('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}); }
-function fmtNum(n){ return Number(n || 0).toLocaleString('en-US'); }
-function unique(arr){ return [...new Set(arr.filter(x=>x && x !== '—'))]; }
-function parentRows(data){ return data.filter(isParent).filter(r=>solutionName(r)); }
-function activeStatuses(){ return new Set(['Backlog','Queued','In Progress','In UAT']); }
-function completedStatuses(){ return new Set(['Done']); }
-function statusSort(a,b){ return (statusOrder.indexOf(a) < 0 ? 999 : statusOrder.indexOf(a)) - (statusOrder.indexOf(b) < 0 ? 999 : statusOrder.indexOf(b)); }
-function byCountMap(rows, getter){ const m = {}; rows.forEach(r=>{ const k = getter(r); if(k) m[k]=(m[k]||0)+1; }); return m; }
-function bySumMap(rows, getter, amount){ const m = {}; rows.forEach(r=>{ const k = getter(r); if(k) m[k]=(m[k]||0)+amount(r); }); return m; }
-function asRows(map, order){ let keys = Object.keys(map); if(order) keys.sort((a,b)=>order.indexOf(a)-order.indexOf(b)); else keys.sort((a,b)=>map[b]-map[a]); return keys.map(k=>[k,map[k]]); }
+const el = id => document.getElementById(id);
+const money = n => Number(n||0).toLocaleString('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0});
+const num = n => Number(n||0).toLocaleString('en-US');
+const clean = v => String(v ?? '').trim();
+const statusClean = s => clean(s).replace(/^\d+\.\s*/, '').replace('Canceled','Cancelled');
+const lower = v => clean(v).toLowerCase();
+const isParent = r => clean(r['Business Solution']) !== '' || Number(r.Level) === 0;
+const savingsValue = r => Number(r['Total Savings/ Year'] || r['Extended Savings ($/Year)'] || 0) || 0;
+const usersValue = r => Number(r['# of Users Impacted'] || 0) || 0;
+const solutionName = r => clean(r.Summary) || clean(r.Description) || clean(r['Jira Issue Key']) || 'Untitled Solution';
+const uniqueBy = (arr, fn) => [...new Map(arr.map(x => [fn(x), x])).values()];
 
-function loadLocalData(){ try{ const s = localStorage.getItem('dashboardUploadedData'); return s ? JSON.parse(s) : null; }catch(e){ return null; } }
-function saveLocalData(data, filename){ localStorage.setItem('dashboardUploadedData', JSON.stringify(data)); localStorage.setItem('dashboardUploadedName', filename || 'Uploaded File'); }
-function clearLocalData(){ localStorage.removeItem('dashboardUploadedData'); localStorage.removeItem('dashboardUploadedName'); }
-
-function init(){
-  document.getElementById('fileUpload').addEventListener('change', handleUpload);
-  document.getElementById('restoreDataBtn').addEventListener('click', ()=>{ clearLocalData(); rawData = packagedData; buildFilters(true); render(); });
-  document.getElementById('resetBtn').addEventListener('click', ()=>{ document.querySelectorAll('.filterBar select').forEach(s=>s.value='All'); render(); });
-  ['category','status','department','priority','year'].forEach(id=>document.getElementById(id+'Filter').addEventListener('change', render));
-  document.getElementById('completedSearch').addEventListener('input', renderTables);
-  document.getElementById('activeSearch').addEventListener('input', renderTables);
-  document.querySelectorAll('th[data-sort]').forEach(th=>th.addEventListener('click',()=>handleSort(th)));
-  document.querySelectorAll('button[data-export]').forEach(btn=>btn.addEventListener('click',()=>exportCsv(btn.dataset.export)));
-  const name = localStorage.getItem('dashboardUploadedName'); if(name) document.getElementById('sourceInfo').textContent = name;
-  document.getElementById('lastUpdated').textContent = new Date().toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'});
-  buildFilters(true); render();
-}
-
-function buildFilters(reset=false){
-  const opts = {
-    category: unique(rawData.map(category)).sort(),
-    status: unique(rawData.map(r=>normStatus(text(r,'Jira Status')))).sort(statusSort),
-    department: unique(rawData.map(r=>text(r,'Department'))).sort(),
-    priority: unique(rawData.map(r=>text(r,'Priority'))).sort(),
-    year: unique(rawData.map(r=>String(val(r,'Year')||'').trim())).sort()
-  };
-  Object.entries(opts).forEach(([id,values])=>{
-    const sel = document.getElementById(id+'Filter'); const current = reset ? 'All' : sel.value;
-    sel.innerHTML = '<option value="All">All</option>' + values.map(v=>`<option>${escapeHtml(v)}</option>`).join('');
-    sel.value = values.includes(current) ? current : 'All';
-  });
-}
-
-function filteredData(){
-  const f = {
-    category: document.getElementById('categoryFilter').value,
-    status: document.getElementById('statusFilter').value,
-    department: document.getElementById('departmentFilter').value,
-    priority: document.getElementById('priorityFilter').value,
-    year: document.getElementById('yearFilter').value,
-  };
-  document.getElementById('reportingYear').textContent = f.year;
-  return rawData.filter(r =>
-    (f.category==='All'||category(r)===f.category) &&
-    (f.status==='All'||normStatus(text(r,'Jira Status'))===f.status) &&
-    (f.department==='All'||text(r,'Department')===f.department) &&
-    (f.priority==='All'||text(r,'Priority')===f.priority) &&
-    (f.year==='All'||String(val(r,'Year')||'').trim()===f.year)
+function parentRows(data){ return uniqueBy(data.filter(isParent), r => `${solutionName(r)}|${clean(r.Department)}`); }
+function ticketRows(data){ return data.filter(r => clean(r['Jira Issue Key']) || clean(r.Summary)); }
+function currentFilters(){ return {
+  category: el('categoryFilter').value, status: el('statusFilter').value, department: el('departmentFilter').value,
+  priority: el('priorityFilter').value, year: el('yearFilter').value
+};}
+function applyFilters(data){
+  const f = currentFilters();
+  return data.filter(r =>
+    (!f.category || clean(r['GTO Work Category']) === f.category) &&
+    (!f.status || statusClean(r['Jira Status']) === f.status) &&
+    (!f.department || clean(r.Department) === f.department) &&
+    (!f.priority || clean(r.Priority) === f.priority) &&
+    (!f.year || String(r.Year) === String(f.year))
   );
 }
-
-function render(){
-  const rows = filteredData(); const parents = parentRows(rows);
-  document.getElementById('kpiParentSolutions').textContent = fmtNum(unique(parents.map(solutionName)).length);
-  document.getElementById('kpiTickets').textContent = fmtNum(rows.length);
-  document.getElementById('kpiInitiatives').textContent = fmtNum(rows.filter(r=>category(r)==='Initiative').length);
-  document.getElementById('kpiEnhancements').textContent = fmtNum(rows.filter(r=>category(r)==='Enhancement').length);
-  document.getElementById('kpiKTLO').textContent = fmtNum(rows.filter(r=>category(r)==='KTLO').length);
-  document.getElementById('kpiSavings').textContent = fmtMoney(parents.reduce((s,r)=>s+num(r,'Total Savings/ Year'),0));
-  document.getElementById('kpiDepartments').textContent = fmtNum(unique(parents.map(r=>text(r,'Department'))).length || unique(rows.map(r=>text(r,'Department'))).length);
-  renderCharts(rows, parents); prepTables(parents); renderTables();
+function optionsFor(field, transform=x=>clean(x), data=rawData){
+  return [...new Set(data.map(r=>transform(r[field])).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),undefined,{numeric:true}));
 }
-
-function renderCharts(rows, parents){
-  const statusCounts = byCountMap(parents, r=>normStatus(text(r,'Jira Status')));
-  const statusSeries = statusOrder.filter(s=>statusCounts[s]).map(s=>[s,statusCounts[s]]);
-  chartBar('solutionsByStatus', statusSeries.map(x=>x[0]), statusSeries.map(x=>x[1]), statusSeries.map(x=>statusColors[x[0]]||'#1e5aa8'), false);
-  const savingsMap = bySumMap(parents, r=>normStatus(text(r,'Jira Status')), r=>num(r,'Total Savings/ Year'));
-  const savingsSeries = statusOrder.filter(s=>savingsMap[s]!==undefined).map(s=>[s,savingsMap[s]]);
-  chartBar('savingsByStatus', savingsSeries.map(x=>x[0]), savingsSeries.map(x=>x[1]), savingsSeries.map(x=>statusColors[x[0]]||'#1e5aa8'), true);
-  const typeMap = byCountMap(parents, typeSavings); const typeSeries = asRows(typeMap).slice(0,7);
-  chartDoughnut('typeOfSavings', typeSeries.map(x=>shortLabel(x[0])), typeSeries.map(x=>x[1]));
-  const catMap = byCountMap(rows, category); const cats = ['Initiative','Enhancement','KTLO'].filter(k=>catMap[k]);
-  chartBar('ticketsByCategory', cats, cats.map(k=>catMap[k]), ['#1e5aa8','#7147d8','#19b7a6'], false);
-  const deptMap = byCountMap(rows, r=>text(r,'Department')); const depts = asRows(deptMap).slice(0,10);
-  chartBar('departmentTickets', depts.map(x=>x[0]), depts.map(x=>x[1]), depts.map((_,i)=>palette[i%palette.length]), false);
+function fillSelect(id, values, all='All'){
+  const s=el(id), old=s.value; s.innerHTML = `<option value="">${all}</option>` + values.map(v=>`<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+  if(values.includes(old)) s.value=old;
 }
-
-function chartBar(id, labels, data, colors, money){
-  if(charts[id]) charts[id].destroy();
-  charts[id] = new Chart(document.getElementById(id), {type:'bar', data:{labels, datasets:[{data, backgroundColor:colors, borderRadius:8, borderSkipped:false}]}, options:{indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=> money?fmtMoney(c.raw):fmtNum(c.raw)}}}, scales:{x:{grid:{color:'#e8eef8'}, ticks:{callback:v=> money?fmtMoney(v):fmtNum(v)}}, y:{grid:{display:false}}}});
+function buildFilters(){
+  fillSelect('categoryFilter', optionsFor('GTO Work Category'));
+  fillSelect('statusFilter', [...new Set(rawData.map(r=>statusClean(r['Jira Status'])).filter(Boolean))].sort((a,b)=>(STATUS_ORDER.indexOf(a)<0?99:STATUS_ORDER.indexOf(a))-(STATUS_ORDER.indexOf(b)<0?99:STATUS_ORDER.indexOf(b))));
+  fillSelect('departmentFilter', optionsFor('Department'));
+  fillSelect('priorityFilter', optionsFor('Priority'));
+  fillSelect('yearFilter', optionsFor('Year', v=>String(v||'')).reverse());
 }
-function chartDoughnut(id, labels, data){
-  if(charts[id]) charts[id].destroy();
-  charts[id] = new Chart(document.getElementById(id), {type:'doughnut', data:{labels, datasets:[{data, backgroundColor:palette, borderColor:'#fff', borderWidth:3}]}, options:{responsive:true, maintainAspectRatio:false, cutout:'58%', plugins:{legend:{position:'right', labels:{boxWidth:12,font:{weight:'700'}}}}}});
+function update(){
+  const filtered = applyFilters(rawData), parents = parentRows(filtered), tickets = ticketRows(filtered);
+  const distinctDepartments = new Set(parents.map(r=>clean(r.Department)).filter(Boolean));
+  el('kpiSolutions').textContent = num(parents.length);
+  el('kpiTickets').textContent = num(tickets.length);
+  el('kpiInitiatives').textContent = num(tickets.filter(r=>lower(r['GTO Work Category']).includes('initiative')).length);
+  el('kpiEnhancements').textContent = num(tickets.filter(r=>lower(r['GTO Work Category']).includes('enhancement')).length);
+  el('kpiKtlo').textContent = num(tickets.filter(r=>lower(r['GTO Work Category']).includes('ktlo') || lower(r['GTO Work Category']).includes('bau')).length);
+  el('kpiSavings').textContent = money(parents.reduce((a,r)=>a+savingsValue(r),0));
+  el('kpiDepartments').textContent = num(distinctDepartments.size);
+  el('reportingYear').textContent = el('yearFilter').value || 'All';
+  renderCharts(parents, tickets);
+  renderTables(parents);
 }
-
-function prepTables(parents){
-  currentCompleted = parents.filter(r=>completedStatuses().has(normStatus(text(r,'Jira Status')))).map(rowObj).sort((a,b)=>b.savings-a.savings).slice(0,50);
-  currentActive = parents.filter(r=>activeStatuses().has(normStatus(text(r,'Jira Status')))).map(rowObj).sort((a,b)=>b.savings-a.savings);
+function grouped(arr, keyFn, valFn=()=>1){
+  return arr.reduce((m,r)=>{const k=keyFn(r)||'Not Provided'; m[k]=(m[k]||0)+valFn(r); return m;},{});
 }
-function rowObj(r){ return {solution:solutionName(r),status:normStatus(text(r,'Jira Status')),savings:num(r,'Total Savings/ Year'),department:cleanCell(text(r,'Department')),requestor:cleanCell(text(r,'Requestor')),description:cleanCell(text(r,'Description')),type:cleanCell(typeSavings(r)),users:num(r,'# of Users Impacted'),completed:formatDate(text(r,'Completed Date'))}; }
-function renderTables(){
-  renderTable('completed', currentCompleted, document.getElementById('completedSearch').value, ['solution','savings','department','requestor','type','users','completed']);
-  renderTable('active', currentActive, document.getElementById('activeSearch').value, ['solution','status','savings','department','requestor','description','type','users']);
+function orderedEntries(obj, order=[]) {return Object.entries(obj).sort((a,b)=>{let ia=order.indexOf(a[0]), ib=order.indexOf(b[0]); ia=ia<0?99:ia; ib=ib<0?99:ib; return ia-ib || b[1]-a[1];});}
+function chart(id, type, data, options){ if(charts[id]) charts[id].destroy(); charts[id] = new Chart(el(id), {type, data, options}); }
+function renderCharts(parents){
+  const status = orderedEntries(grouped(parents, r=>statusClean(r['Jira Status'])), STATUS_ORDER);
+  chart('statusChart','bar',{labels:status.map(x=>x[0]),datasets:[{data:status.map(x=>x[1]),backgroundColor:status.map((_,i)=>COLORS[i%COLORS.length]),borderRadius:9}]},{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'#e6edf7'}},x:{grid:{display:false}}}});
+  const sav = orderedEntries(grouped(parents, r=>statusClean(r['Jira Status']), savingsValue), STATUS_ORDER);
+  chart('savingsStatusChart','bar',{labels:sav.map(x=>x[0]),datasets:[{data:sav.map(x=>x[1]),backgroundColor:sav.map((_,i)=>COLORS[i%COLORS.length]),borderRadius:9}]},{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>money(c.raw)}}},scales:{x:{ticks:{callback:v=>money(v)},grid:{color:'#e6edf7'}},y:{grid:{display:false}}}});
+  const type = Object.entries(grouped(parents, r=>clean(r['Financial Impact']) || clean(r['Efficiency Gains']) || clean(r['Type of Request']) || 'Not Provided')).sort((a,b)=>b[1]-a[1]).slice(0,7);
+  chart('savingsTypeChart','doughnut',{labels:type.map(x=>x[0]),datasets:[{data:type.map(x=>x[1]),backgroundColor:COLORS,borderWidth:0}]},{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right'}}});
 }
-function renderTable(kind, data, search, cols){
-  const table = document.getElementById(kind+'Table').querySelector('tbody');
-  let filtered = !search ? data : data.filter(r=>Object.values(r).join(' ').toLowerCase().includes(search.toLowerCase()));
-  const st = sortState[kind]; filtered = [...filtered].sort((a,b)=>compare(a[st.key],b[st.key],st.dir));
-  table.innerHTML = filtered.slice(0,100).map(r=>'<tr>'+cols.map(c=>cell(c,r[c])).join('')+'</tr>').join('');
-  document.getElementById(kind+'Count').textContent = `Showing ${Math.min(filtered.length,100)} of ${filtered.length} results`;
+function rowObj(r){return {name:solutionName(r), status:statusClean(r['Jira Status']), savings:savingsValue(r), dept:clean(r.Department)||'—', requestor:clean(r.Requestor)||'—', description:clean(r.Description)||clean(r['Primary Purpose'])||'—', type:clean(r['Financial Impact']) || clean(r['Efficiency Gains']) || clean(r['Type of Request']) || '—', users:usersValue(r), date:formatDate(r['Completed Date'])};}
+function renderTables(parents){
+  const completedSearch=lower(el('completedSearch').value), activeSearch=lower(el('activeSearch').value);
+  let completed=parents.map(rowObj).filter(r=>r.status==='Done').filter(r=>JSON.stringify(r).toLowerCase().includes(completedSearch));
+  let active=parents.map(rowObj).filter(r=>ACTIVE_STATUSES.includes(r.status)).filter(r=>JSON.stringify(r).toLowerCase().includes(activeSearch));
+  completed = sortRows(completed, ...sortState.completed).slice(0,50);
+  active = sortRows(active, ...sortState.active).slice(0,100);
+  makeTable('completedTable', completed, [ ['name','Business Solution'],['savings','Annual Savings'],['dept','Department'],['requestor','Requestor'],['type','Type of Savings'],['users','Users Impacted'],['date','Completion Date'] ], 'completed');
+  makeTable('activeTable', active, [ ['name','Business Solution'],['status','Status'],['savings','Annual Savings'],['dept','Department'],['requestor','Requestor'],['description','Description'],['type','Type of Savings'],['users','Users Impacted'] ], 'active');
+  el('completedCount').textContent=`Showing ${completed.length} completed solutions`;
+  el('activeCount').textContent=`Showing ${active.length} active solutions`;
 }
-function cell(c,v){
-  if(c==='solution') return `<td class="solution">${escapeHtml(v)}</td>`;
-  if(c==='savings') return `<td class="money">${fmtMoney(v)}</td>`;
-  if(c==='status') return `<td>${statusBadge(v)}</td>`;
-  if(c==='type') return `<td><span class="typePill">${escapeHtml(shortLabel(v))}</span></td>`;
-  if(c==='users') return `<td>${fmtNum(v)}</td>`;
-  return `<td>${escapeHtml(v)}</td>`;
+function sortRows(rows,key,dir){return rows.sort((a,b)=>{let x=a[key],y=b[key]; if(typeof x==='number'||typeof y==='number'){x=Number(x)||0;y=Number(y)||0;} else {x=String(x);y=String(y);} return (x>y?1:x<y?-1:0)*(dir==='asc'?1:-1);});}
+function makeTable(id, rows, cols, tableKey){
+  const thead = `<thead><tr>${cols.map(([k,l])=>`<th data-table="${tableKey}" data-key="${k}">${l} ↕</th>`).join('')}</tr></thead>`;
+  const body = rows.map(r=>`<tr>${cols.map(([k])=>`<td>${cell(k,r[k])}</td>`).join('')}</tr>`).join('') || `<tr><td colspan="${cols.length}">No records match the selected filters.</td></tr>`;
+  el(id).innerHTML = thead + `<tbody>${body}</tbody>`;
+  el(id).querySelectorAll('th').forEach(th=>th.onclick=()=>{const t=th.dataset.table,k=th.dataset.key; const cur=sortState[t]; sortState[t]=[k, cur[0]===k && cur[1]==='desc'?'asc':'desc']; update();});
 }
-function statusBadge(s){ const cls = s==='Done'?'done':s==='In UAT'?'uat':s==='In Progress'?'progress':s==='Cancelled'?'cancel':''; return `<span class="badge ${cls}">${escapeHtml(s)}</span>`; }
-function handleSort(th){ const kind = th.closest('table').id.includes('completed')?'completed':'active'; const key = th.dataset.sort; const st = sortState[kind]; st.dir = st.key===key && st.dir==='asc' ? 'desc' : 'asc'; st.key=key; renderTables(); }
-function compare(a,b,dir){ if(typeof a==='number'||typeof b==='number'){return dir==='asc'?a-b:b-a} return dir==='asc'?String(a).localeCompare(String(b)):String(b).localeCompare(String(a)); }
-function formatDate(v){ if(!v) return '—'; const d = new Date(v); return isNaN(d) ? v : d.toLocaleDateString('en-US'); }
-function shortLabel(s){ return String(s||'').replace('Eliminates or reduces an existing cost (replacing an existing paid tool or vendor)','Reduces Existing Cost').replace('Avoids a new cost (replacing the need to purchase or build an external solution)','Avoids New Cost').replace('Efficiency gains (time savings only)','Efficiency Gains').replace('No financial impact','No Financial Impact'); }
-function escapeHtml(s){ return String(s??'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
-
-function handleUpload(e){
-  const file = e.target.files[0]; if(!file) return;
-  const reader = new FileReader();
-  reader.onload = evt => {
-    const data = new Uint8Array(evt.target.result);
-    const wb = XLSX.read(data,{type:'array', cellDates:true});
-    const sheet = wb.Sheets[wb.SheetNames[0]];
-    const json = XLSX.utils.sheet_to_json(sheet,{defval:''});
-    rawData = json; saveLocalData(json,file.name); document.getElementById('sourceInfo').textContent = file.name; buildFilters(true); render();
-  };
-  reader.readAsArrayBuffer(file);
+function cell(k,v){
+  if(k==='name') return `<span class="solution-name">${escapeHtml(v)}</span>`;
+  if(k==='status') return `<span class="status-pill ${statusClass(v)}">${escapeHtml(v)}</span>`;
+  if(k==='savings') return `<span class="saving">${money(v)}</span>`;
+  if(k==='users') return num(v);
+  return escapeHtml(v);
 }
-function exportCsv(kind){
-  const rows = kind==='completed'?currentCompleted:currentActive; const cols = kind==='completed'?['solution','savings','department','requestor','type','users','completed']:['solution','status','savings','department','requestor','description','type','users'];
-  const csv = [cols.join(','),...rows.map(r=>cols.map(c=>'"'+String(r[c]??'').replace(/"/g,'""')+'"').join(','))].join('\n');
-  const blob = new Blob([csv],{type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`${kind}-portfolio.csv`; a.click(); URL.revokeObjectURL(a.href);
+function statusClass(s){s=lower(s); if(s==='done') return 'status-done'; if(s.includes('uat')) return 'status-uat'; if(s.includes('progress')) return 'status-progress'; if(s.includes('cancel')) return 'status-cancelled'; return '';}
+function formatDate(v){ if(!v) return '—'; const d = new Date(v); return isNaN(d) ? clean(v) : d.toLocaleDateString('en-US'); }
+function escapeHtml(v){return String(v ?? '').replace(/[&<>'"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
+function exportCsv(which){
+  const table=el(which==='completed'?'completedTable':'activeTable'); let csv=[...table.querySelectorAll('tr')].map(tr=>[...tr.children].map(td=>'"'+td.textContent.replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download=`${which}-portfolio.csv`; a.click();
 }
-
+async function handleFile(file){
+  const buf = await file.arrayBuffer(); const wb = XLSX.read(buf); const ws = wb.Sheets[wb.SheetNames[0]]; rawData = XLSX.utils.sheet_to_json(ws,{defval:''});
+  localStorage.setItem('dashboardData', JSON.stringify(rawData)); localStorage.setItem('dashboardUpdated', new Date().toLocaleString());
+  el('lastUpdated').textContent = localStorage.getItem('dashboardUpdated'); buildFilters(); update();
+}
+function init(){
+  const stored=localStorage.getItem('dashboardData'); if(stored){try{rawData=JSON.parse(stored)}catch(e){}}
+  el('lastUpdated').textContent = localStorage.getItem('dashboardUpdated') || new Date().toLocaleDateString('en-US');
+  buildFilters(); ['categoryFilter','statusFilter','departmentFilter','priorityFilter','yearFilter'].forEach(id=>el(id).onchange=update);
+  el('resetFilters').onclick=()=>{['categoryFilter','statusFilter','departmentFilter','priorityFilter','yearFilter'].forEach(id=>el(id).value=''); update();};
+  el('completedSearch').oninput=update; el('activeSearch').oninput=update;
+  el('fileInput').onchange=e=>e.target.files[0]&&handleFile(e.target.files[0]);
+  document.querySelectorAll('[data-export]').forEach(b=>b.onclick=()=>exportCsv(b.dataset.export));
+  const upload=document.querySelector('.upload-card'); upload.ondragover=e=>{e.preventDefault(); upload.classList.add('drag')}; upload.ondragleave=()=>upload.classList.remove('drag'); upload.ondrop=e=>{e.preventDefault(); upload.classList.remove('drag'); if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);};
+  update();
+}
 document.addEventListener('DOMContentLoaded', init);

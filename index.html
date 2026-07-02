@@ -1,94 +1,91 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Smartsheet Enterprise Solutions Portfolio Dashboard</title>
-  <link rel="stylesheet" href="styles.css" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/styles.css" />
 </head>
 <body>
-  <aside class="sidebar">
-    <div class="brand"><div class="brandMark">N</div><div><strong>NCLH</strong><span>Technology PMO</span></div></div>
-    <nav>
-      <a href="#overview" class="active">Overview</a>
-      <a href="#charts">Portfolio</a>
-      <a href="#completed">Completed</a>
-      <a href="#active">Active Portfolio</a>
-      <a href="#upload">Upload Data</a>
-    </nav>
-  </aside>
-  <main class="dashboard" id="overview">
-    <section class="hero">
-      <div class="heroOverlay"></div>
-      <div class="heroContent">
-        <p class="eyebrow">Executive Portfolio Dashboard</p>
-        <h1>Smartsheet Enterprise Solutions Portfolio Dashboard</h1>
-        <p class="subtitle">Driving efficiency, delivering value, and providing executive visibility into the enterprise solutions portfolio.</p>
-        <div class="metaRow">
-          <span><b>Last Updated</b><em id="lastUpdated">Today</em></span>
-          <span><b>Data Source</b><em id="sourceInfo">Packaged Excel Data</em></span>
-          <span><b>Reporting Year</b><em id="reportingYear">All</em></span>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand-mark">NCLH</div>
+      <nav>
+        <a href="#overview" class="active">Overview</a>
+        <a href="#portfolio">Portfolio</a>
+        <a href="#savings">Savings</a>
+        <a href="#tables">Tables</a>
+        <a href="#upload">Upload Data</a>
+      </nav>
+    </aside>
+
+    <main class="dashboard">
+      <section class="hero" id="overview">
+        <div class="hero-overlay"></div>
+        <div class="hero-copy">
+          <p class="eyebrow">Technology PMO • Smartsheet Platform</p>
+          <h1>Smartsheet Enterprise Solutions Portfolio Dashboard</h1>
+          <p class="tagline">Executive visibility into new solutions, delivery progress, enterprise impact, and annualized savings.</p>
+          <div class="metadata">
+            <span><b>Last Updated:</b> <em id="lastUpdated">—</em></span>
+            <span><b>Data Source:</b> Excel Upload</span>
+            <span><b>Reporting Year:</b> <em id="reportingYear">All</em></span>
+          </div>
         </div>
-      </div>
-    </section>
+        <label class="upload-card" id="upload">
+          <span>Upload new data file</span>
+          <small>Drop or select .xlsx export</small>
+          <input id="fileInput" type="file" accept=".xlsx,.xls" />
+        </label>
+      </section>
 
-    <section class="uploadStrip" id="upload">
-      <div>
-        <h2>Upload new data file</h2>
-        <p>Drop in the latest Smartsheet Excel export and the dashboard refreshes instantly. The uploaded file is saved in this browser.</p>
-      </div>
-      <div class="uploadActions" id="dropZone">
-        <input id="fileUpload" type="file" accept=".xlsx,.xls,.csv" />
-        <label for="fileUpload">Choose Excel file</label>
-        <button id="restoreDataBtn" type="button">Restore packaged data</button>
-      </div>
-    </section>
+      <section class="filters-panel">
+        <div class="filter"><label>Category</label><select id="categoryFilter"></select></div>
+        <div class="filter"><label>Status</label><select id="statusFilter"></select></div>
+        <div class="filter"><label>Department</label><select id="departmentFilter"></select></div>
+        <div class="filter"><label>Priority</label><select id="priorityFilter"></select></div>
+        <div class="filter"><label>Year</label><select id="yearFilter"></select></div>
+        <button id="resetFilters">Reset filters</button>
+      </section>
 
-    <section class="filterBar">
-      <label>Category<select id="categoryFilter"><option value="All">All</option></select></label>
-      <label>Status<select id="statusFilter"><option value="All">All</option></select></label>
-      <label>Department<select id="departmentFilter"><option value="All">All</option></select></label>
-      <label>Priority<select id="priorityFilter"><option value="All">All</option></select></label>
-      <label>Year<select id="yearFilter"><option value="All">All</option></select></label>
-      <button id="resetBtn">Reset filters</button>
-    </section>
+      <section class="kpis">
+        <article class="kpi"><span>Business Solutions</span><strong id="kpiSolutions">0</strong><small>Unique parent solution rows</small></article>
+        <article class="kpi"><span>Total Tickets</span><strong id="kpiTickets">0</strong><small>Filtered Jira work items</small></article>
+        <article class="kpi"><span>Initiatives</span><strong id="kpiInitiatives">0</strong><small>Ticket volume</small></article>
+        <article class="kpi"><span>Enhancements</span><strong id="kpiEnhancements">0</strong><small>Ticket volume</small></article>
+        <article class="kpi"><span>KTLO</span><strong id="kpiKtlo">0</strong><small>Ticket volume</small></article>
+        <article class="kpi money"><span>Annual Savings</span><strong id="kpiSavings">$0</strong><small>Parent rows only</small></article>
+        <article class="kpi"><span>Departments Impacted</span><strong id="kpiDepartments">0</strong><small>Distinct filtered departments</small></article>
+      </section>
 
-    <section class="kpis">
-      <div class="kpi accent"><span>Business Solutions</span><strong id="kpiParentSolutions">0</strong><small>Parent solutions</small></div>
-      <div class="kpi"><span>Total Tickets</span><strong id="kpiTickets">0</strong><small>All work items</small></div>
-      <div class="kpi"><span>Initiatives</span><strong id="kpiInitiatives">0</strong><small>Ticket volume</small></div>
-      <div class="kpi"><span>Enhancements</span><strong id="kpiEnhancements">0</strong><small>Ticket volume</small></div>
-      <div class="kpi"><span>KTLO</span><strong id="kpiKTLO">0</strong><small>Ticket volume</small></div>
-      <div class="kpi wide"><span>Annual Savings</span><strong id="kpiSavings">$0</strong><small>Parent rows only</small></div>
-      <div class="kpi"><span>Departments Impacted</span><strong id="kpiDepartments">0</strong><small>Distinct departments</small></div>
-    </section>
+      <section class="charts" id="portfolio">
+        <div class="panel"><h2>New Solutions by Status</h2><canvas id="statusChart"></canvas></div>
+        <div class="panel"><h2>Annual Savings by Status</h2><canvas id="savingsStatusChart"></canvas></div>
+        <div class="panel"><h2>Type of Savings</h2><canvas id="savingsTypeChart"></canvas></div>
+      </section>
 
-    <section class="grid three" id="charts">
-      <div class="card"><h3>New Solutions by Status</h3><canvas id="solutionsByStatus"></canvas></div>
-      <div class="card"><h3>Annual Savings by Status</h3><canvas id="savingsByStatus"></canvas></div>
-      <div class="card"><h3>Type of Savings</h3><canvas id="typeOfSavings"></canvas></div>
-    </section>
+      <section class="tables" id="tables">
+        <div class="table-card">
+          <div class="table-head"><h2>Highest Value Completed Solutions</h2><input id="completedSearch" placeholder="Search completed solutions..." /></div>
+          <div class="table-wrap"><table id="completedTable"></table></div>
+          <div class="table-actions"><span id="completedCount"></span><button data-export="completed">Export CSV</button></div>
+        </div>
 
-    <section class="grid two">
-      <div class="card"><h3>Ticket Volume by Work Category</h3><canvas id="ticketsByCategory"></canvas></div>
-      <div class="card"><h3>Top Departments by Ticket Volume</h3><canvas id="departmentTickets"></canvas></div>
-    </section>
+        <div class="table-card">
+          <div class="table-head"><h2>Active Portfolio</h2><input id="activeSearch" placeholder="Search active portfolio..." /></div>
+          <div class="table-wrap"><table id="activeTable"></table></div>
+          <div class="table-actions"><span id="activeCount"></span><button data-export="active">Export CSV</button></div>
+        </div>
+      </section>
+    </main>
+  </div>
 
-    <section class="card tableCard" id="completed">
-      <div class="tableHeader"><div><h3>Highest Value Completed Solutions</h3><p>Top completed parent solutions, sorted by total annual savings.</p></div><input id="completedSearch" placeholder="Search completed solutions..." /></div>
-      <div class="tableWrap"><table id="completedTable"><thead><tr><th data-sort="solution">Business Solution</th><th data-sort="savings">Annual Savings</th><th data-sort="department">Department</th><th data-sort="requestor">Requestor</th><th data-sort="type">Type of Savings</th><th data-sort="users">Users Impacted</th><th data-sort="completed">Completion Date</th></tr></thead><tbody></tbody></table></div>
-      <div class="tableFooter"><span id="completedCount"></span><button data-export="completed">Export CSV</button></div>
-    </section>
-
-    <section class="card tableCard" id="active">
-      <div class="tableHeader"><div><h3>Active Portfolio</h3><p>Backlog, queued, in progress, and UAT solutions sorted by annual savings.</p></div><input id="activeSearch" placeholder="Search active portfolio..." /></div>
-      <div class="tableWrap"><table id="activeTable"><thead><tr><th data-sort="solution">Business Solution</th><th data-sort="status">Status</th><th data-sort="savings">Annual Savings</th><th data-sort="department">Department</th><th data-sort="requestor">Requestor</th><th data-sort="description">Description</th><th data-sort="type">Type of Savings</th><th data-sort="users">Users Impacted</th></tr></thead><tbody></tbody></table></div>
-      <div class="tableFooter"><span id="activeCount"></span><button data-export="active">Export CSV</button></div>
-    </section>
-  </main>
-  <script src="data.js"></script>
-  <script src="app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/app.js"></script>
 </body>
 </html>
