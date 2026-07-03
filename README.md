@@ -1,37 +1,18 @@
-# Smartsheet Enterprise Solutions Portfolio Dashboard
+# Smartsheet Enterprise Solutions Portfolio Dashboard | NCLH Branded HTML
 
-A static, GitHub Pages-ready executive dashboard for the Smartsheet Enterprise Solutions portfolio.
+This version includes the requested updates:
 
-## How to host in GitHub Pages
+- NCLH-inspired blue/purple branding
+- Title changed to **Smartsheet Enterprise Solutions Portfolio Dashboard**
+- Vessel hero background included in `assets/images/vessel-hero.png`
+- **Business Sponsor** column removed from both tables
+- Only **Requestor** remains
+- Excel upload remains available so the dashboard can refresh from a new `.xlsx` file
 
-1. Extract this ZIP.
-2. Upload the individual files and folders to your GitHub repository:
-   - `index.html`
-   - `assets/`
-   - `README.md`
-3. In GitHub, go to **Settings → Pages**.
-4. Set **Source** to **Deploy from a branch**.
-5. Select **main** and **/(root)**.
-6. Click **Save**.
+## GitHub Pages
 
-Your dashboard will publish at:
+Upload the contents of this folder to your repo root, not the ZIP itself. Then use:
 
-`https://YOUR-USERNAME.github.io/YOUR-REPOSITORY/`
+Settings → Pages → Deploy from a branch → `main` → `/ (root)` → Save
 
-## Refreshing the data
-
-Open the live dashboard and use **Upload new data file** at the top right. Select or drag/drop a new `.xlsx` export. The dashboard refreshes immediately and stores the latest upload in your browser.
-
-## Data logic
-
-- **Business Solutions** = unique parent solution rows.
-- **Total Tickets** = filtered Jira work items.
-- **Initiatives / Enhancements / KTLO** = ticket volume using `GTO Work Category`.
-- **Annual Savings** = sum of `Total Savings/ Year` from parent rows only.
-- **Departments Impacted** = distinct departments from filtered parent solution rows.
-- **Completed Solutions** = parent solutions with status `Done`.
-- **Active Portfolio** = parent solutions with `Backlog`, `Queued`, `In Progress`, or `In UAT`.
-
-## Notes
-
-This is a fully static dashboard. It does not require a server, database, or paid hosting.
+After uploading, hard refresh your dashboard page with Ctrl + F5.

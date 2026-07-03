@@ -1,3 +1,4 @@
+// NCLH branded version - sponsor column removed - generated 2026-07-02
 const COLORS = ['#1e5aa8','#6f42c1','#3588ff','#1db9b6','#099268','#94a3b8','#334155'];
 const STATUS_ORDER = ['Backlog','Queued','In Progress','In UAT','Done','Cancelled','Canceled'];
 const ACTIVE_STATUSES = ['Backlog','Queued','In Progress','In UAT'];
